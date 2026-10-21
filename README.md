@@ -11,10 +11,9 @@ In TizenBrew: Module Manager → add `gh/<your-username>/samsung-home`.
 
 - Left / Right: move between apps
 - OK: open the app
-- Red: choose which apps appear (order = the order you pick them)
+- Red: settings: icon style, city for the weather, and which apps appear (order = the order you pick them)
 - Yellow / Blue: move the selected app left / right
 - Green: check screen (which icons loaded, and why not)
-- In the app chooser, Yellow switches the icon style
 
 ## Icons
 
@@ -32,7 +31,9 @@ The small `service.js` helper runs inside TizenBrew and lets the page read the i
 ## Settings
 
 The weather finds your location automatically from your internet connection, so it works anywhere with no setup.
-To force a city, set `FIXED_CITY` at the top of the script in `index.html`. `PHOTO_SECONDS` sets how long each photo stays.
+Internet providers sometimes place you in a bigger city nearby; to fix that, open settings (Red), go up to
+"city for the weather", press OK and type your city. Leave it empty to go back to automatic.
+`PHOTO_SECONDS` at the top of the script in `index.html` sets how long each photo stays.
 
 ## Photo credits
 

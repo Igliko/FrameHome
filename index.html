@@ -51,11 +51,22 @@
   #toast { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); background: rgba(0,0,0,.7);
     padding: 16px 32px; border-radius: 16px; font-size: 24px; opacity: 0; transition: opacity .3s; }
   #toast.on { opacity: 1; }
+  #toast { z-index: 10; }
   #picker { position: absolute; inset: 0; background: rgba(8,8,10,.92); display: none; padding: 80px 96px; overflow: hidden; }
   #picker.on { display: block; }
   #picker h1 { margin: 0 0 8px; font-size: 48px; font-weight: 600; }
   #picker p { margin: 0 0 40px; font-size: 24px; color: rgba(255,255,255,.65); }
-  #grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 28px; max-height: 800px; overflow: hidden; }
+  #opts { display: flex; gap: 28px; margin: 28px 0 36px; }
+  .opt { position: relative; min-width: 520px; height: 110px; border-radius: 18px; background: rgba(255,255,255,.08);
+    border: 3px solid transparent; padding: 16px 26px; display: flex; flex-direction: column; justify-content: center; }
+  .opt .ol { font-size: 20px; color: rgba(255,255,255,.6); margin-bottom: 4px; }
+  .opt b { font-size: 28px; font-weight: 600; }
+  .opt.focus { border-color: #fff; background: rgba(255,255,255,.18); }
+  .opt input { display: none; font: inherit; font-size: 28px; color: #fff; background: rgba(0,0,0,.35);
+    border: 2px solid rgba(255,255,255,.6); border-radius: 10px; padding: 6px 12px; width: 460px; outline: none; }
+  .opt.editing b { display: none; }
+  .opt.editing input { display: block; }
+  #grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 28px; max-height: 560px; overflow: hidden; }
   .pi { height: 110px; border-radius: 18px; background: rgba(255,255,255,.08); display: flex; align-items: center;
     gap: 18px; padding: 0 22px; font-size: 24px; border: 3px solid transparent; }
   .pi .no { width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4);
@@ -76,12 +87,16 @@
   <div id="date"></div>
   <div id="title"><div class="k" id="kick"></div><div class="t" id="name"></div></div>
   <div id="dock"><div id="track"></div></div>
-  <div id="hint"><b></b>Κόκκινο κουμπί: επιλογή εφαρμογών</div>
+  <div id="hint"><b></b>Κόκκινο κουμπί: εφαρμογές και ρυθμίσεις</div>
   <div id="toast"></div>
   <div id="picker">
-    <h1>Οι εφαρμογές σου</h1>
-    <p>OK για να προσθέσεις ή να βγάλεις. Η σειρά είναι η σειρά που τις επιλέγεις. Κόκκινο ή Πίσω για αποθήκευση.<br>
-      Κίτρινο: στυλ εικονιδίων, τώρα <b id="stylename"></b></p>
+    <h1>Ρυθμίσεις</h1>
+    <div id="opts">
+      <div class="opt" id="opt0"><span class="ol">Εικονίδια (OK για αλλαγή)</span><b id="stylename"></b></div>
+      <div class="opt" id="opt1"><span class="ol">Πόλη για τον καιρό (OK για αλλαγή)</span><b id="cityname"></b>
+        <input id="cityinput" type="text" autocomplete="off" placeholder="π.χ. Πάτρα · κενό = αυτόματα"></div>
+    </div>
+    <p>Εφαρμογές: OK για να προσθέσεις ή να βγάλεις. Η σειρά στην αρχική είναι η σειρά που τις επιλέγεις. Κόκκινο ή Πίσω για αποθήκευση.</p>
     <div id="grid"></div>
   </div>
   <div id="diag"></div>
@@ -100,7 +115,7 @@ var DEFAULT_APPS = [/tizentube/i, /youtube/i, /netflix/i, /spotify/i, /geforce/i
 var ICON_SERVER = "http://127.0.0.1:47811/icon?path=";
 var hasTizen = typeof window.tizen !== "undefined" && !!tizen.application;
 var allApps = [], pinned = [], items = [];
-var focus = 0, mode = "dock", pfocus = 0, bgFlip = 0;
+var focus = 0, mode = "dock", pfocus = 0, pzone = "grid", ofocus = 0, bgFlip = 0;
 var iconState = {};
 
 function $(id) { return document.getElementById(id); }
@@ -399,15 +414,19 @@ function launchControl(app) {
 }
 
 // ---------- picker ----------
-function openPicker() { mode = "picker"; pfocus = 0; $("picker").classList.add("on"); renderPicker(); }
+function openPicker() { mode = "picker"; pfocus = 0; pzone = "grid"; ofocus = 0; $("picker").classList.add("on"); renderPicker(); }
 function closePicker() { mode = "dock"; $("picker").classList.remove("on"); savePinned(); buildDock(); }
 function renderPicker() {
   $("stylename").textContent = STYLE_NAMES[iconStyle];
+  var chosen = savedCity();
+  $("cityname").textContent = chosen ? chosen.name : "Αυτόματα" + (currentCity && currentCity.name ? " · " + currentCity.name : "");
+  $("opt0").classList.toggle("focus", pzone === "opts" && ofocus === 0);
+  $("opt1").classList.toggle("focus", pzone === "opts" && ofocus === 1);
   var g = $("grid"); g.innerHTML = "";
   allApps.forEach(function (a, i) {
     var n = pinned.indexOf(a.id);
     var d = document.createElement("div");
-    d.className = "pi" + (n >= 0 ? " sel" : "") + (i === pfocus ? " focus" : "");
+    d.className = "pi" + (n >= 0 ? " sel" : "") + (pzone === "grid" && i === pfocus ? " focus" : "");
     d.innerHTML = '<div class="no">' + (n >= 0 ? n + 1 : "") + '</div><div class="lbl"></div>';
     d.lastChild.textContent = a.name;
     g.appendChild(d);
@@ -420,6 +439,42 @@ function togglePick(i) {
   renderPicker();
 }
 
+// ---------- city for the weather ----------
+function savedCity() { try { return JSON.parse(localStorage.getItem("home.city") || "null"); } catch (e) { return null; } }
+function startCityEdit() {
+  mode = "city";
+  var box = $("opt1"), inp = $("cityinput");
+  var c = savedCity();
+  inp.value = c ? c.name : "";
+  box.classList.add("editing");
+  setTimeout(function () { inp.focus(); }, 50);
+}
+function endCityEdit(save) {
+  var box = $("opt1"), inp = $("cityinput"), q = inp.value.replace(/^\s+|\s+$/g, "");
+  box.classList.remove("editing");
+  inp.blur();
+  mode = "picker";
+  if (!save) { renderPicker(); return; }
+  if (!q) {
+    try { localStorage.removeItem("home.city"); localStorage.removeItem("home.loc"); } catch (e) {}
+    currentCity = null;
+    toast("Πόλη: αυτόματα");
+    loadWeather(); renderPicker(); return;
+  }
+  toast("Αναζήτηση: " + q + "…");
+  fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&language=el&format=json&name=" + encodeURIComponent(q))
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      var r0 = j.results && j.results[0];
+      if (!r0) { toast("Δεν βρέθηκε: " + q); return; }
+      var city = { name: r0.name, lat: r0.latitude, lon: r0.longitude };
+      try { localStorage.setItem("home.city", JSON.stringify(city)); } catch (e) {}
+      toast("Πόλη: " + city.name + (r0.country ? ", " + r0.country : ""));
+      loadWeather(); renderPicker();
+    })
+    .catch(function () { toast("Δεν υπάρχει σύνδεση για την αναζήτηση"); });
+}
+
 // ---------- check screen (green button) ----------
 function openDiag() {
   mode = "diag";
@@ -430,7 +485,8 @@ function openDiag() {
       "TV API: " + (hasTizen ? "ναι" : "όχι"),
       "Εφαρμογές που βρέθηκαν: " + allApps.length,
       "Βοηθός εικονιδίων: " + helper,
-      "Στυλ εικονιδίων: " + STYLE_NAMES[iconStyle], ""];
+      "Στυλ εικονιδίων: " + STYLE_NAMES[iconStyle],
+      "Καιρός για: " + (currentCity ? currentCity.name + (savedCity() ? " (επιλογή σου)" : " (αυτόματα)") : "-"), ""];
     items.forEach(function (a) {
       if (a.add) return;
       var st = iconState[a.id] || {};
@@ -458,6 +514,11 @@ function closeDiag() { mode = "dock"; $("diag").classList.remove("on"); }
 document.addEventListener("keydown", function (ev) {
   var k = ev.keyCode;
   // on a computer keyboard: R, G, Y, B act as the red, green, yellow, blue buttons
+  if (mode === "city") {
+    if (k === 13 || k === 65376) { endCityEdit(true); ev.preventDefault(); }
+    else if (k === 27 || k === 10009 || k === 65385) { endCityEdit(false); ev.preventDefault(); }
+    return; // let the keyboard type
+  }
   var COLOR_KEYS = { 82: 403, 71: 404, 89: 405, 66: 406 };
   if (COLOR_KEYS[k]) k = COLOR_KEYS[k];
   if (mode === "diag") {
@@ -466,14 +527,23 @@ document.addEventListener("keydown", function (ev) {
   }
   if (mode === "picker") {
     var cols = 5, max = allApps.length - 1;
-    if (k === 37) pfocus = Math.max(0, pfocus - 1);
-    else if (k === 39) pfocus = Math.min(max, pfocus + 1);
-    else if (k === 38) pfocus = Math.max(0, pfocus - cols);
-    else if (k === 40) pfocus = Math.min(max, pfocus + cols);
-    else if (k === 13) { togglePick(pfocus); ev.preventDefault(); return; }
-    else if (k === 403 || k === 10009 || k === 8 || k === 27) { closePicker(); ev.preventDefault(); return; }
-    else if (k === 405) { setIconStyle(STYLES[(STYLES.indexOf(iconStyle) + 1) % STYLES.length]); }
-    else return;
+    if (k === 403 || k === 10009 || k === 8 || k === 27) { closePicker(); ev.preventDefault(); return; }
+    if (pzone === "opts") {
+      if (k === 37) ofocus = 0;
+      else if (k === 39) ofocus = 1;
+      else if (k === 40) { pzone = "grid"; pfocus = ofocus === 0 ? 0 : Math.min(max, 2); }
+      else if (k === 13 && ofocus === 0) setIconStyle(STYLES[(STYLES.indexOf(iconStyle) + 1) % STYLES.length]);
+      else if (k === 13 && ofocus === 1) { startCityEdit(); ev.preventDefault(); return; }
+      else return;
+    } else {
+      if (k === 37) pfocus = Math.max(0, pfocus - 1);
+      else if (k === 39) pfocus = Math.min(max, pfocus + 1);
+      else if (k === 38) { if (pfocus < cols) { pzone = "opts"; ofocus = (pfocus % cols) < 2 ? 0 : 1; } else pfocus -= cols; }
+      else if (k === 40) pfocus = Math.min(max, pfocus + cols);
+      else if (k === 13) { togglePick(pfocus); ev.preventDefault(); return; }
+      else if (k === 405) setIconStyle(STYLES[(STYLES.indexOf(iconStyle) + 1) % STYLES.length]);
+      else return;
+    }
     renderPicker(); ev.preventDefault(); return;
   }
   if (k === 37) setFocus(focus - 1);
@@ -512,7 +582,10 @@ function iconFor(code) {
   if (code >= 51) return ICONS.rain;
   return ICONS.cloud;
 }
+var currentCity = null;
 function findLocation(cb) {
+  var chosen = savedCity();
+  if (chosen) { cb(chosen); return; }
   if (FIXED_CITY) { cb(FIXED_CITY); return; }
   try {
     var c = JSON.parse(localStorage.getItem("home.loc") || "null");
@@ -528,6 +601,8 @@ function findLocation(cb) {
   });
 }
 function loadWeather() { findLocation(function (city) {
+  currentCity = city;
+  if (mode === "picker") renderPicker();
   var url = "https://api.open-meteo.com/v1/forecast?latitude=" + city.lat + "&longitude=" + city.lon +
     "&current=temperature_2m,weather_code&timezone=auto";
   fetch(url).then(function (r) { return r.json(); }).then(function (j) {
