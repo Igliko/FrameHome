@@ -457,6 +457,9 @@ function closeDiag() { mode = "dock"; $("diag").classList.remove("on"); }
 // ---------- remote ----------
 document.addEventListener("keydown", function (ev) {
   var k = ev.keyCode;
+  // on a computer keyboard: R, G, Y, B act as the red, green, yellow, blue buttons
+  var COLOR_KEYS = { 82: 403, 71: 404, 89: 405, 66: 406 };
+  if (COLOR_KEYS[k]) k = COLOR_KEYS[k];
   if (mode === "diag") {
     if (k === 404 || k === 10009 || k === 8 || k === 27 || k === 13) { closeDiag(); ev.preventDefault(); }
     return;
