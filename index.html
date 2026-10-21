@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1920, initial-scale=1" />
+<title>Home</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #1b2430; color: #fff;
+    font-family: "SamsungOne", "Helvetica Neue", Arial, sans-serif; }
+  .bg { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; object-fit: cover; opacity: 0;
+    transition: opacity 2s ease; }
+  .bg.on { opacity: 1; }
+  .bg.zoom { animation: drift 40s linear forwards; }
+  @keyframes drift { from { transform: scale(1); } to { transform: scale(1.1); } }
+  #shade { position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 45%, rgba(0,0,0,.75) 100%); }
+  #top { position: absolute; top: 56px; right: 80px; display: flex; align-items: center; gap: 36px;
+    font-size: 34px; font-weight: 500; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+  #weather { display: flex; align-items: center; gap: 12px; }
+  #weather svg { width: 40px; height: 40px; }
+  #date { position: absolute; top: 104px; right: 80px; font-size: 22px; color: rgba(255,255,255,.8);
+    text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+  #title { position: absolute; left: 96px; bottom: 360px; text-shadow: 0 4px 24px rgba(0,0,0,.6); }
+  #title .k { font-size: 26px; color: rgba(255,255,255,.75); margin-bottom: 8px; }
+  #title .t { font-size: 72px; font-weight: 600; letter-spacing: -1px; }
+
+  /* Dock: icons only, no tiles behind them */
+  #dock { position: absolute; left: 0; right: 0; bottom: 70px; height: 230px; padding: 0 96px; overflow: hidden; }
+  #track { position: relative; height: 100%; display: flex; align-items: center; gap: 72px; transition: transform .3s ease; }
+  .app { flex: 0 0 200px; height: 166px; display: flex; align-items: center; justify-content: center;
+    opacity: .72; transform: scale(.92); transition: transform .25s ease, opacity .25s ease; }
+  .app { position: relative; }
+  .app.focus { opacity: 1; transform: scale(1.18) translateY(-12px); }
+  .app.focus::after { content: ""; position: absolute; left: 50%; bottom: -26px; width: 10px; height: 10px; margin-left: -5px;
+    border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+  .app img.logo { filter: drop-shadow(0 4px 14px rgba(0,0,0,.55)); }
+  .app img.orig { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 18px;
+    filter: drop-shadow(0 10px 22px rgba(0,0,0,.5)); }
+  .app svg.glyph { width: 120px; height: 120px; fill: none; stroke: #fff; stroke-width: 1.6; stroke-linecap: round;
+    stroke-linejoin: round; filter: drop-shadow(0 8px 18px rgba(0,0,0,.55)); }
+  .app .mono { width: 140px; height: 140px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 64px; font-weight: 600; background: rgba(255,255,255,.16); backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  .app .mono svg { width: 64px; height: 64px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+  .app.focus .mono { background: rgba(255,255,255,.3); }
+
+  #hint { position: absolute; right: 96px; bottom: 24px; font-size: 18px; color: rgba(255,255,255,.55); }
+  #hint b { display: inline-block; width: 14px; height: 14px; border-radius: 3px; background: #e5484d;
+    margin: 0 6px -1px 0; }
+  #toast { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); background: rgba(0,0,0,.7);
+    padding: 16px 32px; border-radius: 16px; font-size: 24px; opacity: 0; transition: opacity .3s; }
+  #toast.on { opacity: 1; }
+  #picker { position: absolute; inset: 0; background: rgba(8,8,10,.92); display: none; padding: 80px 96px; overflow: hidden; }
+  #picker.on { display: block; }
+  #picker h1 { margin: 0 0 8px; font-size: 48px; font-weight: 600; }
+  #picker p { margin: 0 0 40px; font-size: 24px; color: rgba(255,255,255,.65); }
+  #grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 28px; max-height: 800px; overflow: hidden; }
+  .pi { height: 110px; border-radius: 18px; background: rgba(255,255,255,.08); display: flex; align-items: center;
+    gap: 18px; padding: 0 22px; font-size: 24px; border: 3px solid transparent; }
+  .pi .no { width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4);
+    display: flex; align-items: center; justify-content: center; font-size: 22px; flex: 0 0 44px; }
+  .pi.sel .no { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
+  .pi .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pi.focus { border-color: #fff; background: rgba(255,255,255,.18); }
+  #diag { position: absolute; inset: 0; background: rgba(8,8,10,.94); display: none; padding: 70px 96px;
+    font: 22px/1.5 Menlo, Consolas, monospace; white-space: pre-wrap; overflow: hidden; }
+  #diag.on { display: block; }
+</style>
+</head>
+<body>
+  <img class="bg" id="bg0" alt="">
+  <img class="bg" id="bg1" alt="">
+  <div id="shade"></div>
+  <div id="top"><div id="weather"></div><div id="clock"></div></div>
+  <div id="date"></div>
+  <div id="title"><div class="k" id="kick"></div><div class="t" id="name"></div></div>
+  <div id="dock"><div id="track"></div></div>
+  <div id="hint"><b></b>Κόκκινο κουμπί: επιλογή εφαρμογών</div>
+  <div id="toast"></div>
+  <div id="picker">
+    <h1>Οι εφαρμογές σου</h1>
+    <p>OK για να προσθέσεις ή να βγάλεις. Η σειρά είναι η σειρά που τις επιλέγεις. Κόκκινο ή Πίσω για αποθήκευση.<br>
+      Κίτρινο: στυλ εικονιδίων, τώρα <b id="stylename"></b></p>
+    <div id="grid"></div>
+  </div>
+  <div id="diag"></div>
+<script>
+// ---- settings you can change ----
+// Weather location is found automatically from the internet connection.
+// To force a city, set e.g. FIXED_CITY = { name: "Πάτρα", lat: 38.2466, lon: 21.7346 };
+var FIXED_CITY = null;
+var FALLBACK_CITY = { name: "Αθήνα", lat: 37.9838, lon: 23.7275 };
+var PHOTO_SECONDS = 30;
+// "white" = white logos, "color" = logos in their own colours, "original" = icons as the TV has them (with the box)
+var DEFAULT_ICON_STYLE = "white";
+var DEFAULT_APPS = [/tizentube/i, /youtube/i, /netflix/i, /spotify/i, /geforce/i, /\bzn\b/i];
+// ---------------------------------
+
+var ICON_SERVER = "http://127.0.0.1:47811/icon?path=";
+var hasTizen = typeof window.tizen !== "undefined" && !!tizen.application;
+var allApps = [], pinned = [], items = [];
+var focus = 0, mode = "dock", pfocus = 0, bgFlip = 0;
+var iconState = {};
+
+function $(id) { return document.getElementById(id); }
+function toast(msg) { var t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove("on"); }, 2500); }
+
+// ---------- apps ----------
+function loadApps(cb) {
+  if (!hasTizen) {
+    cb([
+      { id: "a.TizenTube", name: "TizenTube" }, { id: "org.tizen.netflix-app", name: "Netflix" },
+      { id: "b.GeForceNOW", name: "GeForce NOW" }, { id: "c.ZN", name: "ZN" },
+      { id: "d.Spotify", name: "Spotify" }, { id: "e.PrimeVideo", name: "Prime Video" },
+      { id: "f.Disney", name: "Disney+" }, { id: "g.Browser", name: "Internet" }, { id: "h.Plex", name: "Plex" }
+    ]);
+    return;
+  }
+  try {
+    tizen.application.getAppsInfo(function (list) {
+      var seen = {};
+      var out = list.filter(function (a) {
+        if (!a.show || !a.name || seen[a.id]) return false;
+        if (/homescreen|launcher/i.test(a.id)) return false;
+        seen[a.id] = 1; return true;
+      }).map(function (a) { return { id: a.id, name: a.name, icon: a.iconPath }; });
+      out.sort(function (x, y) { return x.name.localeCompare(y.name); });
+      cb(out);
+    }, function () { cb([]); });
+  } catch (e) { cb([]); }
+}
+function appById(id) { for (var i = 0; i < allApps.length; i++) if (allApps[i].id === id) return allApps[i]; return null; }
+function savePinned() { try { localStorage.setItem("home.pinned", JSON.stringify(pinned)); } catch (e) {} }
+function loadPinned() {
+  try { var s = JSON.parse(localStorage.getItem("home.pinned") || "null"); if (s && s.length) return s; } catch (e) {}
+  var ids = [];
+  DEFAULT_APPS.forEach(function (re) {
+    for (var i = 0; i < allApps.length; i++) {
+      if (re.test(allApps[i].name) && ids.indexOf(allApps[i].id) < 0) { ids.push(allApps[i].id); break; }
+    }
+  });
+  if (!ids.length) ids = allApps.slice(0, 5).map(function (a) { return a.id; });
+  return ids;
+}
+
+// ---------- icons ----------
+// Real icons come from the TV itself (through the small helper in service.js).
+// Most TV app icons are a logo on a coloured box. To show "only the icon", the box colour
+// is detected and removed, so just the logo floats on the photo (white, or in its own colours).
+// If an icon can't be cleaned up (photo backgrounds etc.) a simple drawn symbol is shown instead.
+var STYLES = ["white", "color", "original"];
+var STYLE_NAMES = { white: "λευκά λογότυπα", color: "λογότυπα με τα χρώματά τους", original: "κανονικά εικονίδια (με το κουτί)" };
+var iconStyle = (function () { try { var v = localStorage.getItem("home.iconStyle"); if (STYLES.indexOf(v) >= 0) return v; } catch (e) {} return DEFAULT_ICON_STYLE; })();
+
+var GLYPHS = {
+  film: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>',
+  play: '<circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z"/>',
+  game: '<path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-3.9 3.2L2 14.5a2.6 2.6 0 0 0 4.6 2.1L8 15h8l1.4 1.6a2.6 2.6 0 0 0 4.6-2.1l-.8-6.3A4 4 0 0 0 17.3 5z"/>',
+  ball: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5l3.8 2.8-1.4 4.4H9.6l-1.4-4.4z"/><path d="M12 3v4.5M15.8 10.3l4.4-1.6M14.4 14.7l2.6 3.8M9.6 14.7L7 18.5M8.2 10.3L3.8 8.7"/>',
+  music: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9M12 3c-2.5 2.6-3.8 5.6-3.8 9s1.3 6.4 3.8 9"/>',
+  tv: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M8 3l4 3 4-3M8 21h8"/>',
+  pc: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>'
+};
+var GLYPH_RULES = [
+  [/pc on tv|remote access|screen mirroring|smart view/i, "pc"],
+  [/netflix|prime|disney|hbo|max\b|apple tv|rakuten|cinema|movie|film|mubi|ertflix|vodafone tv|cosmote tv|nova go/i, "film"],
+  [/youtube|tube|twitch|vimeo|plex|jellyfin|kodi|video/i, "play"],
+  [/geforce|xbox|game|steam|luna|playstation|boosteroid/i, "game"],
+  [/\bzn\b|sport|dazn|football|uefa|fifa|nba|\bf1\b|eurosport/i, "ball"],
+  [/spotify|music|deezer|tidal|radio|podcast|soundcloud/i, "music"],
+  [/internet|browser|web/i, "globe"],
+  [/\btv\b|live|iptv|channel/i, "tv"]
+];
+function fallbackHtml(app) {
+  if (app.add) return '<div class="mono"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>';
+  for (var i = 0; i < GLYPH_RULES.length; i++) {
+    if (GLYPH_RULES[i][0].test(app.name)) return '<svg class="glyph" viewBox="0 0 24 24">' + GLYPHS[GLYPH_RULES[i][1]] + "</svg>";
+  }
+  var ini = app.name.replace(/[^A-Za-zΑ-Ωα-ωΆ-ώ0-9]/g, "").slice(0, 1).toUpperCase() || "?";
+  return '<div class="mono">' + ini + "</div>";
+}
+
+// Fit bg = a + b*x + c*y (one channel) to the border samples, so plain and gradient boxes both work.
+function fitPlane(pts, ch) {
+  var n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sv = 0, sxv = 0, syv = 0;
+  for (var i = 0; i < pts.length; i++) {
+    var p = pts[i], v = p[2 + ch];
+    n++; sx += p[0]; sy += p[1]; sxx += p[0] * p[0]; syy += p[1] * p[1]; sxy += p[0] * p[1];
+    sv += v; sxv += p[0] * v; syv += p[1] * v;
+  }
+  var A = [[n, sx, sy], [sx, sxx, sxy], [sy, sxy, syy]], B = [sv, sxv, syv];
+  for (var c = 0; c < 3; c++) {
+    var m = c;
+    for (var r = c + 1; r < 3; r++) if (Math.abs(A[r][c]) > Math.abs(A[m][c])) m = r;
+    var t = A[c]; A[c] = A[m]; A[m] = t; var tb = B[c]; B[c] = B[m]; B[m] = tb;
+    if (Math.abs(A[c][c]) < 1e-9) return [sv / n, 0, 0];
+    for (var r2 = c + 1; r2 < 3; r2++) {
+      var f = A[r2][c] / A[c][c];
+      for (var k = c; k < 3; k++) A[r2][k] -= f * A[c][k];
+      B[r2] -= f * B[c];
+    }
+  }
+  var X = [0, 0, 0];
+  for (var r3 = 2; r3 >= 0; r3--) {
+    var acc = B[r3];
+    for (var k2 = r3 + 1; k2 < 3; k2++) acc -= A[r3][k2] * X[k2];
+    X[r3] = acc / A[r3][r3];
+  }
+  return X;
+}
+
+function processIcon(img, style) {
+  var W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
+  if (!W || !H) return null;
+  var sc = Math.min(1, 360 / Math.max(W, H));
+  var w = Math.max(8, Math.round(W * sc)), h = Math.max(8, Math.round(H * sc));
+  var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  var cx = cv.getContext("2d");
+  cx.drawImage(img, 0, 0, w, h);
+  var id;
+  try { id = cx.getImageData(0, 0, w, h); } catch (e) { return null; }
+  var d = id.data;
+
+  // look at the border, slightly inside the edge (skips rounded corners)
+  var inset = Math.max(2, Math.round(Math.min(w, h) * 0.05));
+  var step = Math.max(1, Math.round(Math.min(w, h) / 48));
+  var pts = [], clear = 0, total = 0;
+  function sample(x, y) {
+    var k = (y * w + x) * 4; total++;
+    if (d[k + 3] < 40) { clear++; return; }
+    pts.push([x, y, d[k], d[k + 1], d[k + 2]]);
+  }
+  for (var x0 = inset; x0 < w - inset; x0 += step) { sample(x0, inset); sample(x0, h - 1 - inset); }
+  for (var y0 = inset; y0 < h - inset; y0 += step) { sample(inset, y0); sample(w - 1 - inset, y0); }
+
+  var transparentBg = clear > total * 0.5, plane = null, rms = 0;
+  if (!transparentBg) {
+    if (pts.length < 8) return null;
+    plane = [fitPlane(pts, 0), fitPlane(pts, 1), fitPlane(pts, 2)];
+    var err = 0;
+    for (var i = 0; i < pts.length; i++) {
+      for (var ch = 0; ch < 3; ch++) {
+        var pr = plane[ch][0] + plane[ch][1] * pts[i][0] + plane[ch][2] * pts[i][1];
+        var e = pts[i][2 + ch] - pr; err += e * e;
+      }
+    }
+    rms = Math.sqrt(err / (pts.length * 3));
+    if (rms > 20) return null; // the box isn't a plain colour or simple gradient
+  }
+
+  var T0 = Math.max(22, rms * 3), T1 = T0 + 70;
+  var alpha = new Float32Array(w * h), fg = new Uint8ClampedArray(w * h * 3);
+  var minX = w, minY = h, maxX = -1, maxY = -1, cover = 0;
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var p = y * w + x, k = p * 4, a = d[k + 3] / 255;
+      if (a <= 0.04) continue;
+      var r = d[k], g = d[k + 1], b = d[k + 2];
+      if (plane) {
+        var br = plane[0][0] + plane[0][1] * x + plane[0][2] * y;
+        var bg = plane[1][0] + plane[1][1] * x + plane[1][2] * y;
+        var bb = plane[2][0] + plane[2][1] * x + plane[2][2] * y;
+        var dist = Math.max(Math.abs(r - br), Math.abs(g - bg), Math.abs(b - bb));
+        var m = (dist - T0) / (T1 - T0);
+        m = m < 0 ? 0 : m > 1 ? 1 : m;
+        a *= m;
+        if (a > 0.02 && a < 0.98) { // take the box colour out of soft edges
+          r = (r - (1 - a) * br) / a; g = (g - (1 - a) * bg) / a; b = (b - (1 - a) * bb) / a;
+        }
+      }
+      if (a <= 0.02) continue;
+      alpha[p] = a; fg[p * 3] = r; fg[p * 3 + 1] = g; fg[p * 3 + 2] = b;
+      cover += a;
+      if (a > 0.25) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+    }
+  }
+  if (maxX < 0) return null;
+  var bw = maxX - minX + 1, bh = maxY - minY + 1;
+  if (cover / (w * h) > 0.6 || bw * bh < w * h * 0.01) return null; // nothing sensible left
+
+  var pad = 2, ow = bw + pad * 2, oh = bh + pad * 2;
+  var out = document.createElement("canvas"); out.width = ow; out.height = oh;
+  var ox = out.getContext("2d"), od = ox.createImageData(ow, oh), o = od.data;
+  for (var yy = 0; yy < bh; yy++) {
+    for (var xx = 0; xx < bw; xx++) {
+      var sp = (minY + yy) * w + (minX + xx), dp = ((yy + pad) * ow + (xx + pad)) * 4, aa = alpha[sp];
+      if (!aa) continue;
+      if (style === "white") { o[dp] = o[dp + 1] = o[dp + 2] = 255; }
+      else {
+        var cr = fg[sp * 3], cg = fg[sp * 3 + 1], cb = fg[sp * 3 + 2];
+        var lum = 0.299 * cr + 0.587 * cg + 0.114 * cb, t = (70 - lum) / 45; // dark parts -> white
+        t = t < 0 ? 0 : t > 1 ? 1 : t;
+        o[dp] = cr + (255 - cr) * t; o[dp + 1] = cg + (255 - cg) * t; o[dp + 2] = cb + (255 - cb) * t;
+      }
+      o[dp + 3] = Math.round(aa * 255);
+    }
+  }
+  ox.putImageData(od, 0, 0);
+  return { src: out.toDataURL("image/png"), w: ow, h: oh };
+}
+
+function iconUrls(app) {
+  if (!app.icon) return [];
+  var p = String(app.icon).replace(/^file:\/\//, "");
+  return [
+    { url: ICON_SERVER + encodeURIComponent(p), cors: true },
+    { url: /^[a-z]+:/i.test(app.icon) ? app.icon : "file://" + p, cors: false }
+  ];
+}
+function loadIcon(app) {
+  if (iconState[app.id]) return;
+  var urls = iconUrls(app);
+  var st = iconState[app.id] = { status: urls.length ? "loading" : "none", proc: {} };
+  if (!urls.length) return;
+  var tries = 0;
+  function attempt(u) {
+    var img = new Image();
+    if (urls[u].cors) img.crossOrigin = "anonymous";
+    img.onload = function () { st.status = "ok"; st.img = img; st.url = urls[u].url; st.via = urls[u].cors ? "βοηθός" : "απευθείας"; refreshIcon(app); };
+    img.onerror = function () {
+      tries++;
+      if (u === 0 && tries < 6) { setTimeout(function () { attempt(0); }, 1500); return; } // helper may still be starting
+      if (u + 1 < urls.length) { attempt(u + 1); return; }
+      st.status = "none";
+    };
+    img.src = urls[u].url + (u === 0 && tries ? "&r=" + tries : "");
+  }
+  attempt(0);
+}
+function iconHtml(app) {
+  var st = iconState[app.id];
+  if (app.add || !st || st.status !== "ok") return fallbackHtml(app);
+  if (iconStyle === "original") return '<img class="orig" alt="" src="' + st.url + '">';
+  if (!(iconStyle in st.proc)) { try { st.proc[iconStyle] = processIcon(st.img, iconStyle); } catch (e) { st.proc[iconStyle] = null; } }
+  var r = st.proc[iconStyle];
+  if (!r) return fallbackHtml(app);
+  // similar visual weight for wide wordmarks and square symbols
+  var k = 112 / Math.sqrt(r.w * r.h), w = r.w * k, h = r.h * k;
+  var lim = Math.min(1, 240 / w, 140 / h); w *= lim; h *= lim;
+  return '<img class="logo" alt="" style="width:' + Math.round(w) + 'px;height:' + Math.round(h) + 'px" src="' + r.src + '">';
+}
+function refreshIcon(app) {
+  var els = $("track").children;
+  for (var i = 0; i < els.length; i++) if (els[i].getAttribute("data-id") === app.id) els[i].innerHTML = iconHtml(app);
+}
+function setIconStyle(next) {
+  iconStyle = next;
+  try { localStorage.setItem("home.iconStyle", iconStyle); } catch (e) {}
+}
+
+// ---------- dock ----------
+function buildDock() {
+  items = pinned.map(appById).filter(Boolean);
+  items.push({ id: "__add", name: "Προσθήκη", add: true });
+  if (focus >= items.length) focus = items.length - 1;
+  var dock = $("track"); dock.innerHTML = "";
+  items.forEach(function (app) {
+    var d = document.createElement("div");
+    d.className = "app";
+    d.setAttribute("data-id", app.id);
+    d.innerHTML = iconHtml(app);
+    dock.appendChild(d);
+    if (!app.add) loadIcon(app);
+  });
+  setFocus(focus);
+}
+var scrollX = 0;
+function setFocus(i) {
+  focus = Math.max(0, Math.min(items.length - 1, i));
+  var els = $("track").children;
+  for (var j = 0; j < els.length; j++) els[j].classList.toggle("focus", j === focus);
+  // keep the selected app on screen when there are more apps than fit
+  var el = els[focus], view = 1920 - 2 * 96, margin = 60;
+  if (el) {
+    if (el.offsetLeft + el.offsetWidth + margin - scrollX > view) scrollX = el.offsetLeft + el.offsetWidth + margin - view;
+    if (el.offsetLeft - margin - scrollX < 0) scrollX = Math.max(0, el.offsetLeft - margin);
+    $("track").style.transform = "translateX(" + (-scrollX) + "px)";
+  }
+  var app = items[focus];
+  $("kick").textContent = app.add ? "Ρυθμίσεις" : "Άνοιγμα";
+  $("name").textContent = app.add ? "Επίλεξε εφαρμογές" : app.name;
+}
+function launch(app) {
+  if (app.add) { openPicker(); return; }
+  if (!hasTizen) { toast("Άνοιγμα " + app.name + " (προεπισκόπηση)"); return; }
+  toast("Άνοιγμα " + app.name + "…");
+  try {
+    tizen.application.launch(app.id, function () {}, function () { launchControl(app); });
+  } catch (e) { launchControl(app); }
+}
+function launchControl(app) {
+  try {
+    var c = new tizen.ApplicationControl("http://tizen.org/appcontrol/operation/default");
+    tizen.application.launchAppControl(c, app.id, function () {}, function () { toast("Δεν άνοιξε: " + app.name); });
+  } catch (e) { toast("Δεν άνοιξε: " + app.name); }
+}
+
+// ---------- picker ----------
+function openPicker() { mode = "picker"; pfocus = 0; $("picker").classList.add("on"); renderPicker(); }
+function closePicker() { mode = "dock"; $("picker").classList.remove("on"); savePinned(); buildDock(); }
+function renderPicker() {
+  $("stylename").textContent = STYLE_NAMES[iconStyle];
+  var g = $("grid"); g.innerHTML = "";
+  allApps.forEach(function (a, i) {
+    var n = pinned.indexOf(a.id);
+    var d = document.createElement("div");
+    d.className = "pi" + (n >= 0 ? " sel" : "") + (i === pfocus ? " focus" : "");
+    d.innerHTML = '<div class="no">' + (n >= 0 ? n + 1 : "") + '</div><div class="lbl"></div>';
+    d.lastChild.textContent = a.name;
+    g.appendChild(d);
+  });
+  var f = g.children[pfocus]; if (f && f.scrollIntoView) f.scrollIntoView({ block: "nearest" });
+}
+function togglePick(i) {
+  var id = allApps[i].id, n = pinned.indexOf(id);
+  if (n >= 0) pinned.splice(n, 1); else pinned.push(id);
+  renderPicker();
+}
+
+// ---------- check screen (green button) ----------
+function openDiag() {
+  mode = "diag";
+  var box = $("diag");
+  box.classList.add("on");
+  function render(helper) {
+    var lines = ["Έλεγχος (πράσινο ή Πίσω για κλείσιμο)", "",
+      "TV API: " + (hasTizen ? "ναι" : "όχι"),
+      "Εφαρμογές που βρέθηκαν: " + allApps.length,
+      "Βοηθός εικονιδίων: " + helper,
+      "Στυλ εικονιδίων: " + STYLE_NAMES[iconStyle], ""];
+    items.forEach(function (a) {
+      if (a.add) return;
+      var st = iconState[a.id] || {};
+      var shown = st.status !== "ok" ? "[σύμβολο]  " : iconStyle === "original" ? "[κανονικό] " :
+        (st.proc && st.proc[iconStyle]) ? "[λογότυπο] " : "[σύμβολο]  ";
+      var why = st.status === "loading" ? "φορτώνει" : st.status !== "ok" ? "δεν φόρτωσε" :
+        (iconStyle !== "original" && !(st.proc && st.proc[iconStyle])) ? "φορτώθηκε, αλλά το φόντο δεν αφαιρέθηκε" : "ok (" + st.via + ")";
+      lines.push(shown + a.name + "  ·  " + a.id + "  ·  " + why);
+      lines.push("            " + (a.icon || "(χωρίς διαδρομή εικονιδίου)"));
+    });
+    box.textContent = lines.join("\n");
+  }
+  render("έλεγχος…");
+  var done = false;
+  setTimeout(function () { if (!done) { done = true; render("δεν απαντά"); } }, 3000);
+  try {
+    fetch("http://127.0.0.1:47811/ping").then(function (r) { return r.text(); })
+      .then(function (t) { if (!done) { done = true; render(t === "ok" ? "λειτουργεί" : "δεν απαντά"); } })
+      .catch(function () { if (!done) { done = true; render("δεν απαντά"); } });
+  } catch (e) { done = true; render("δεν απαντά"); }
+}
+function closeDiag() { mode = "dock"; $("diag").classList.remove("on"); }
+
+// ---------- remote ----------
+document.addEventListener("keydown", function (ev) {
+  var k = ev.keyCode;
+  if (mode === "diag") {
+    if (k === 404 || k === 10009 || k === 8 || k === 27 || k === 13) { closeDiag(); ev.preventDefault(); }
+    return;
+  }
+  if (mode === "picker") {
+    var cols = 5, max = allApps.length - 1;
+    if (k === 37) pfocus = Math.max(0, pfocus - 1);
+    else if (k === 39) pfocus = Math.min(max, pfocus + 1);
+    else if (k === 38) pfocus = Math.max(0, pfocus - cols);
+    else if (k === 40) pfocus = Math.min(max, pfocus + cols);
+    else if (k === 13) { togglePick(pfocus); ev.preventDefault(); return; }
+    else if (k === 403 || k === 10009 || k === 8 || k === 27) { closePicker(); ev.preventDefault(); return; }
+    else if (k === 405) { setIconStyle(STYLES[(STYLES.indexOf(iconStyle) + 1) % STYLES.length]); }
+    else return;
+    renderPicker(); ev.preventDefault(); return;
+  }
+  if (k === 37) setFocus(focus - 1);
+  else if (k === 39) setFocus(focus + 1);
+  else if (k === 13) launch(items[focus]);
+  else if (k === 403) openPicker();
+  else if (k === 404) openDiag();
+  else if (k === 405 && focus > 0 && !items[focus].add) {
+    var t = pinned[focus]; pinned[focus] = pinned[focus - 1]; pinned[focus - 1] = t; focus--; savePinned(); buildDock();
+  } else if (k === 406 && focus < pinned.length - 1) {
+    var u = pinned[focus]; pinned[focus] = pinned[focus + 1]; pinned[focus + 1] = u; focus++; savePinned(); buildDock();
+  } else return;
+  ev.preventDefault();
+});
+
+// ---------- clock, weather ----------
+function tick() {
+  var d = new Date();
+  $("clock").textContent = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  var city = $("date").getAttribute("data-city"), txt;
+  try { txt = d.toLocaleDateString("el-GR", { weekday: "long", day: "numeric", month: "long" }); }
+  catch (e) { txt = d.toDateString(); }
+  $("date").textContent = txt + (city ? " · " + city : "");
+}
+var ICONS = {
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="#ffd60a" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/></svg>',
+  rain: '<svg viewBox="0 0 24 24" fill="none" stroke="#9cd2ff" stroke-width="2" stroke-linecap="round"><path stroke="#fff" d="M7 15h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 15z"/><path d="M9 18l-1 3M13 18l-1 3M17 18l-1 3"/></svg>',
+  snow: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/></svg>',
+  storm: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M7 15h10a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 15z"/><path stroke="#ffd60a" d="M13 14l-3 4h4l-3 4"/></svg>'
+};
+function iconFor(code) {
+  if (code === 0 || code === 1) return ICONS.sun;
+  if (code >= 95) return ICONS.storm;
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return ICONS.snow;
+  if (code >= 51) return ICONS.rain;
+  return ICONS.cloud;
+}
+function findLocation(cb) {
+  if (FIXED_CITY) { cb(FIXED_CITY); return; }
+  try {
+    var c = JSON.parse(localStorage.getItem("home.loc") || "null");
+    if (c && Date.now() - c.t < 24 * 3600 * 1000) { cb(c); return; }
+  } catch (e) {}
+  function save(loc) { loc.t = Date.now(); try { localStorage.setItem("home.loc", JSON.stringify(loc)); } catch (e) {} cb(loc); }
+  fetch("https://get.geojs.io/v1/ip/geo.json").then(function (r) { return r.json(); }).then(function (j) {
+    if (!j.latitude) throw 0; save({ name: j.city, lat: +j.latitude, lon: +j.longitude });
+  }).catch(function () {
+    fetch("https://ipapi.co/json/").then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.latitude) throw 0; save({ name: j.city, lat: j.latitude, lon: j.longitude });
+    }).catch(function () { cb(FALLBACK_CITY); });
+  });
+}
+function loadWeather() { findLocation(function (city) {
+  var url = "https://api.open-meteo.com/v1/forecast?latitude=" + city.lat + "&longitude=" + city.lon +
+    "&current=temperature_2m,weather_code&timezone=auto";
+  fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+    var c = j.current; if (!c) return;
+    $("weather").innerHTML = iconFor(c.weather_code) + "<span>" + Math.round(c.temperature_2m) + "°</span>";
+    $("date").setAttribute("data-city", city.name || "");
+    tick();
+  }).catch(function () {});
+}); }
+
+// ---------- background photos ----------
+var PHOTOS = ["01","02","03","04","05","06","07","08","09","10"].map(function (n) { return "photos/" + n + ".jpg"; });
+var photoIdx = Math.floor(Math.random() * PHOTOS.length), photoFails = 0;
+function nextPhoto() {
+  var next = $("bg" + (1 - bgFlip)), cur = $("bg" + bgFlip);
+  var url = PHOTOS[photoIdx % PHOTOS.length];
+  photoIdx++;
+  next.onload = function () {
+    photoFails = 0;
+    next.classList.remove("zoom"); void next.offsetWidth; next.classList.add("zoom");
+    next.classList.add("on"); cur.classList.remove("on");
+    bgFlip = 1 - bgFlip;
+  };
+  next.onerror = function () { photoFails++; if (photoFails < PHOTOS.length) nextPhoto(); };
+  next.src = url;
+}
+
+// ---------- start ----------
+tick(); setInterval(tick, 10000);
+loadWeather(); setInterval(loadWeather, 30 * 60 * 1000);
+nextPhoto(); setInterval(nextPhoto, PHOTO_SECONDS * 1000);
+loadApps(function (list) {
+  allApps = list;
+  pinned = loadPinned().filter(function (id) { return appById(id); });
+  buildDock();
+  if (hasTizen && !allApps.length) toast("Δεν βρέθηκαν εφαρμογές");
+});
+</script>
+</body>
+</html>
