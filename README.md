@@ -43,14 +43,47 @@ Press the **red button** to pick your apps, their order, the icon style, and the
 
 ## Install
 
-In **TizenBrew → Module Manager**, add the module:
+This is a TizenBrew **module**, so you first need the full **TizenBrew**
+app on your TV (the module runner — *not* the standalone TizenTube app),
+then you add this module to it.
 
-```
-gh/<your-github-username>/samsung-home
-```
+### Part A — Put TizenBrew on the TV (once)
 
-(Fork this repo, or point it at `gh/iloko10/samsung-home`.) Open it from the
-TizenBrew module list.
+You need a Windows/Mac/Linux computer on the **same Wi-Fi** as the TV.
+
+1. **Download the TizenBrew Installer** for your computer from
+   [reisxd/TizenBrewInstaller → Releases](https://github.com/reisxd/TizenBrewInstaller/releases/latest)
+   (e.g. `TizenBrewInstaller-win-x64.exe`). Run it. A terminal window opens and prints
+   `Service started`. **Leave it open.**
+   On Windows, if double-click closes it, run it from a terminal:
+   `cd Downloads` then `.\TizenBrewInstaller-win-x64.exe`.
+2. **Find your computer's IP** (`ipconfig` on Windows → *IPv4 Address*, e.g. `192.168.1.14`).
+3. **Enable Developer Mode on the TV:** open **Apps**, press **1 2 3 4 5** on the
+   remote. Set **Developer mode: On**, and **Host PC IP = your computer's IP**. Press OK,
+   then **power-cycle the TV** (unplug for ~15 s). This is what opens the connection.
+4. On the computer, open **`http://localhost:8091/ui/dist/index.html`** in a browser.
+   Enter the **TV's IP** (TV → Settings → General → Network → Network Status → IP Settings)
+   to connect. Approve any **Allow** prompt on the TV.
+5. Click **Install TizenBrew** and wait for *Package installed*.
+6. Back on the TV, open Developer Mode again (**Apps → 1 2 3 4 5**) and change
+   **Host PC IP to `127.0.0.1`**, press OK, power-cycle once more. Now TizenBrew runs
+   on its own — the computer is no longer needed.
+
+### Part B — Add this home screen
+
+1. Open the **TizenBrew** app on the TV.
+2. Go to **Module Manager** and add the module:
+
+   ```
+   gh/iloko10/samsung-home
+   ```
+
+   (Or fork this repo and use `gh/<your-username>/samsung-home`.)
+3. Open **Home** from the TizenBrew module list. Done.
+
+> Some older Samsung models refuse to launch TizenBrew's background services
+> ("Launch Service failed" / network error). That's a manufacturer lock, not a
+> setup mistake — on those sets a cheap Google TV stick is the reliable route.
 
 ## Remote
 
