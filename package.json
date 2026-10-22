@@ -1,6 +1,6 @@
 {
   "name": "samsung-home",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "packageType": "app",
   "appName": "Home",
   "description": "Apple TV-style home screen for Samsung Tizen TVs, run through TizenBrew.",

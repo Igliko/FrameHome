@@ -14,6 +14,7 @@ In TizenBrew: Module Manager → add `gh/<your-username>/samsung-home`.
 - Red: settings: icon style, city for the weather, and which apps appear (order = the order you pick them)
 - Yellow / Blue: move the selected app left / right
 - Green: check screen (which icons loaded, and why not)
+- Up (on the home screen): highlight the weather, then OK for a 5-day forecast
 
 ## Icons
 

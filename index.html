@@ -15,12 +15,29 @@
   @keyframes drift { from { transform: scale(1); } to { transform: scale(1.1); } }
   #shade { position: absolute; inset: 0;
     background: linear-gradient(to bottom, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 45%, rgba(0,0,0,.75) 100%); }
-  #top { position: absolute; top: 56px; right: 80px; display: flex; align-items: center; gap: 36px;
-    font-size: 34px; font-weight: 500; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+  #top { position: absolute; top: 44px; right: 68px; display: flex; align-items: center; gap: 36px;
+    font-size: 34px; font-weight: 500; text-shadow: 0 2px 12px rgba(0,0,0,.5);
+    padding: 10px 18px; border-radius: 16px; border: 3px solid transparent; transition: background .2s; }
+  #top.sel { border-color: rgba(255,255,255,.9); background: rgba(0,0,0,.4); }
   #weather { display: flex; align-items: center; gap: 12px; }
   #weather svg { width: 40px; height: 40px; }
-  #date { position: absolute; top: 104px; right: 80px; font-size: 22px; color: rgba(255,255,255,.8);
+  #date { position: absolute; top: 108px; right: 80px; font-size: 22px; color: rgba(255,255,255,.8);
     text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+  #wxcue { position: absolute; top: 150px; right: 80px; font-size: 19px; color: rgba(255,255,255,.75);
+    text-shadow: 0 2px 10px rgba(0,0,0,.6); opacity: 0; transition: opacity .2s; }
+  #wxcue.on { opacity: 1; }
+  #forecast { position: absolute; inset: 0; background: rgba(8,10,14,.97); display: none; padding: 90px 96px; }
+  #forecast.on { display: block; }
+  #forecast h1 { margin: 0 0 6px; font-size: 44px; font-weight: 600; }
+  #forecast .sub { margin: 0 0 48px; font-size: 24px; color: rgba(255,255,255,.6); }
+  #fdays { display: flex; gap: 24px; }
+  .fday { flex: 1; background: rgba(255,255,255,.06); border-radius: 22px; padding: 32px 10px; text-align: center; }
+  .fday.today { background: rgba(255,255,255,.14); }
+  .fday .dname { font-size: 26px; font-weight: 500; margin-bottom: 20px; }
+  .fday svg { width: 76px; height: 76px; margin: 0 auto 20px; display: block; }
+  .fday .hi { font-size: 40px; font-weight: 600; }
+  .fday .lo { font-size: 28px; color: rgba(255,255,255,.55); margin-top: 4px; }
+  .fday .desc { font-size: 19px; color: rgba(255,255,255,.7); margin-top: 16px; min-height: 46px; }
   #title { position: absolute; left: 96px; bottom: 360px; text-shadow: 0 4px 24px rgba(0,0,0,.6); }
   #title .k { font-size: 26px; color: rgba(255,255,255,.75); margin-bottom: 8px; }
   #title .t { font-size: 72px; font-weight: 600; letter-spacing: -1px; }
@@ -87,6 +104,8 @@
   <div id="shade"></div>
   <div id="top"><div id="weather"></div><div id="clock"></div></div>
   <div id="date"></div>
+  <div id="wxcue">OK για πρόγνωση 5 ημερών ▾</div>
+  <div id="forecast"></div>
   <div id="title"><div class="k" id="kick"></div><div class="t" id="name"></div></div>
   <div id="dock"><div id="track"></div></div>
   <div id="hint"><b></b>Κόκκινο κουμπί: εφαρμογές και ρυθμίσεις</div>
@@ -119,7 +138,7 @@ var ICON_SERVER = "http://127.0.0.1:47811/icon?path=";
 var hasTizen = typeof window.tizen !== "undefined" && !!tizen.application;
 if (!hasTizen) document.documentElement.className += " laptop";
 var allApps = [], pinned = [], items = [];
-var focus = 0, mode = "dock", pfocus = 0, pzone = "grid", ofocus = 0, bgFlip = 0;
+var focus = 0, mode = "dock", pfocus = 0, pzone = "grid", ofocus = 0, bgFlip = 0, topFocus = false;
 var iconState = {};
 
 function $(id) { return document.getElementById(id); }
@@ -657,6 +676,10 @@ document.addEventListener("keydown", function (ev) {
     if (k === 404 || k === 10009 || k === 8 || k === 27 || k === 13) { closeDiag(); ev.preventDefault(); }
     return;
   }
+  if (mode === "forecast") {
+    if (k === 10009 || k === 8 || k === 27 || k === 13 || k === 38) { closeForecast(); ev.preventDefault(); }
+    return;
+  }
   if (mode === "picker") {
     var cols = 5, max = allApps.length - 1;
     if (k === 403 || k === 10009 || k === 8 || k === 27) { closePicker(); ev.preventDefault(); return; }
@@ -678,6 +701,12 @@ document.addEventListener("keydown", function (ev) {
     }
     renderPicker(); ev.preventDefault(); return;
   }
+  if (topFocus) {
+    if (k === 13) { openForecast(); ev.preventDefault(); return; }
+    if (k === 40 || k === 10009 || k === 8 || k === 27) { setTopFocus(false); ev.preventDefault(); return; }
+    ev.preventDefault(); return;
+  }
+  if (k === 38) { setTopFocus(true); ev.preventDefault(); return; }
   if (k === 37) setFocus(focus - 1);
   else if (k === 39) setFocus(focus + 1);
   else if (k === 13) launch(items[focus]);
@@ -732,18 +761,65 @@ function findLocation(cb) {
     }).catch(function () { cb(FALLBACK_CITY); });
   });
 }
+var WX_TEXT = {
+  0: "Αίθριος", 1: "Λίγα σύννεφα", 2: "Αραιή συννεφιά", 3: "Συννεφιά",
+  45: "Ομίχλη", 48: "Ομίχλη", 51: "Ψιχάλα", 53: "Ψιχάλα", 55: "Ψιχάλα",
+  61: "Βροχή", 63: "Βροχή", 65: "Δυνατή βροχή", 66: "Παγωμένη βροχή", 67: "Παγωμένη βροχή",
+  71: "Χιόνι", 73: "Χιόνι", 75: "Δυνατό χιόνι", 77: "Χιονόνερο",
+  80: "Μπόρες", 81: "Μπόρες", 82: "Δυνατές μπόρες", 85: "Χιονομπόρες", 86: "Χιονομπόρες",
+  95: "Καταιγίδα", 96: "Καταιγίδα με χαλάζι", 99: "Καταιγίδα με χαλάζι"
+};
+function wxText(code) { return WX_TEXT[code] || ""; }
+var weatherDaily = null;
 function loadWeather() { findLocation(function (city) {
   currentCity = city;
   if (mode === "picker") renderPicker();
   var url = "https://api.open-meteo.com/v1/forecast?latitude=" + city.lat + "&longitude=" + city.lon +
-    "&current=temperature_2m,weather_code&timezone=auto";
+    "&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto";
   fetch(url).then(function (r) { return r.json(); }).then(function (j) {
     var c = j.current; if (!c) return;
     $("weather").innerHTML = iconFor(c.weather_code) + "<span>" + Math.round(c.temperature_2m) + "°</span>";
     $("date").setAttribute("data-city", city.name || "");
+    weatherDaily = j.daily || null;
     tick();
+    if (mode === "forecast") renderForecast();
   }).catch(function () {});
 }); }
+function openForecast() {
+  mode = "forecast";
+  $("wxcue").classList.remove("on");
+  $("top").classList.remove("sel");
+  $("forecast").classList.add("on");
+  renderForecast();
+}
+function closeForecast() { mode = "dock"; $("forecast").classList.remove("on"); }
+function setTopFocus(on) {
+  topFocus = on;
+  $("top").classList.toggle("sel", on);
+  $("wxcue").classList.toggle("on", on);
+}
+function renderForecast() {
+  var box = $("forecast");
+  var title = currentCity && currentCity.name ? currentCity.name : "Καιρός";
+  if (!weatherDaily || !weatherDaily.time) {
+    box.innerHTML = '<h1>' + title + '</h1><p class="sub">Φόρτωση πρόγνωσης…</p>';
+    return;
+  }
+  var days = ["Κυρ", "Δευ", "Τρί", "Τετ", "Πέμ", "Παρ", "Σάβ"];
+  var html = '<h1>' + title + '</h1><p class="sub">Οι επόμενες μέρες</p><div id="fdays">';
+  for (var i = 0; i < weatherDaily.time.length; i++) {
+    var d = new Date(weatherDaily.time[i] + "T12:00:00");
+    var name = i === 0 ? "Σήμερα" : days[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1);
+    html += '<div class="fday' + (i === 0 ? " today" : "") + '">' +
+      '<div class="dname">' + name + '</div>' +
+      iconFor(weatherDaily.weather_code[i]) +
+      '<div class="hi">' + Math.round(weatherDaily.temperature_2m_max[i]) + '°</div>' +
+      '<div class="lo">' + Math.round(weatherDaily.temperature_2m_min[i]) + '°</div>' +
+      '<div class="desc">' + wxText(weatherDaily.weather_code[i]) + '</div></div>';
+  }
+  html += '</div><p class="sub" style="margin-top:40px">Πίσω ή OK για κλείσιμο</p>';
+  box.innerHTML = html;
+}
 
 // ---------- background photos ----------
 var PHOTOS = ["01","02","03","04","05","06","07","08","09","10"].map(function (n) { return "photos/" + n + ".jpg"; });
