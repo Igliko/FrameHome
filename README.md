@@ -1,5 +1,9 @@
 # FrameHome — an Apple TV-style home screen for Samsung TVs
 
+Samsung TVs can now be modded — you can change the TV's software and even
+replace its UI. So instead of putting up with the busy, ad-filled stock home
+screen, I built my own.
+
 A clean, calm launcher for Samsung Tizen TVs, run through
 [TizenBrew](https://github.com/reisxd/TizenBrew). It shows your own apps
 over a full-screen photo that changes on its own, with the time and a live
