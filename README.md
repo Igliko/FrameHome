@@ -1,4 +1,4 @@
-# Home — an Apple TV-style home screen for Samsung TVs
+# FrameHome — an Apple TV-style home screen for Samsung TVs
 
 A clean, calm launcher for Samsung Tizen TVs, run through
 [TizenBrew](https://github.com/reisxd/TizenBrew). It shows your own apps
@@ -75,7 +75,7 @@ You need a Windows/Mac/Linux computer on the **same Wi-Fi** as the TV.
 2. Go to **Module Manager** and add the module:
 
    ```
-   gh/iloko10/samsung-home
+   gh/iloko10/FrameHome
    ```
 
    (Or fork this repo and use `gh/<your-username>/samsung-home`.)
