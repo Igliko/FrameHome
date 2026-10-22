@@ -792,7 +792,7 @@ function openForecast() {
   $("forecast").classList.add("on");
   renderForecast();
 }
-function closeForecast() { mode = "dock"; $("forecast").classList.remove("on"); }
+function closeForecast() { mode = "dock"; $("forecast").classList.remove("on"); setTopFocus(false); }
 function setTopFocus(on) {
   topFocus = on;
   $("top").classList.toggle("sel", on);
