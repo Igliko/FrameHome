@@ -91,5 +91,6 @@ At the top of the `<script>` in `index.html`:
 - Weather: [Open-Meteo](https://open-meteo.com). Location: [GeoJS](https://www.geojs.io/) / [ipapi](https://ipapi.co/).
 - Runs on [TizenBrew](https://github.com/reisxd/TizenBrew) by Reis Can.
 
-App logos in the screenshots belong to their owners and are shown only to
-illustrate how the launcher displays the apps already installed on the TV.
+App logos in the screenshots are from [Simple Icons](https://github.com/simple-icons/simple-icons)
+and belong to their respective owners; they're shown only to illustrate how
+the launcher displays the apps already installed on the TV.
