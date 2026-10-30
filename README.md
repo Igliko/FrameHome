@@ -12,6 +12,11 @@ weather forecast — no ads, no rows of "recommended", no clutter.
 No root. Nothing is uninstalled. Everything is reversible — remove the
 module and your TV is exactly as before.
 
+> **Samsung only.** FrameHome runs through TizenBrew, which exists only for
+> Samsung TVs (they use Samsung's own Tizen system). It does **not** run on
+> LG (webOS) or on Google TV / Android TV sets as-is — those use a different
+> system and would need a different build.
+
 ![Home screen](docs/prev_home.png)
 
 ## Features
